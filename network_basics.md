@@ -175,3 +175,26 @@ To find the quickest path between two nodes in an acyclic graph, an algorithm ty
 
 - If there are no loops then there is no *redundancy*, meaning any broken link will result in partitioning the network into pieces that cannot communicate. 
 - Including redundancy will implicate the decision making among the multiple paths to a destination.
+
+![[Screenshot 2025-04-24 at 11.17.24 PM.png]]
+
+Both `A-S1-S2-S4-B` and `A-S1-S3-S4-B` get there, there is no right answer, even if one path is "faster" than the other, taking the slower path is not exactly wrong (especially if the slower path is less expensive). To decide in this options, many LAN's (in particular ethernet) prefer *tree* networks with no redundancy, while IP has complex protocols in support of redundancy.
+
+### Traffic Engineering 
+> Refers to any intentional selection of one router over another, or any elevation of the priority of one class of traffic. 
+- The route selection can either be directly intentional, through configuration, or can be implicit in the selection or tuning of algorithms that then make these route-selection choices automatically.
+- **`Distance-Vector Routing-Update Algorithm`** build forwarding tables on their own, but those tables are greatly influenced by the administrative assignment of link costs.
+
+With *pure datagram forwarding*, used at either the LAN or the IP layer, the path taken by a packet is determined solely by its destination, and traffic engineering is limited to the choices made between alternative paths
+- As quality of service information is taken into account in datagram forwarding, voice traffic for example with its relatively low bandwidth but intolerance for delay, take an entirely different path compared to bulk file transfers. Hence a network manager might take voice traffic with higher priority, so it does not have to wait in queues behind file transfer. **Some algorithms might use priority queues to add priority to the packet type**
+- The quality of service information may be set by the end-user, which case an ISP may wish to recognize it only for designated users, meaning **ISPs will implicitly use the traffic source when making decisions**. 
+- ISPs routing decision can be based on packet size, port number, and other contents.
+
+At the LAN layer, *traffic engineering* mechanisms are historically limited. 
+At the IP layer more strategies are available when taking in account *quality of service*.
+
+## 1.6 Routing Loops
+
+> **Possibility of routing loops is a drawback to datagram forwarding**.
+> A set of entries in the forwarding tables that cause some packets to circulate endlessly.
+

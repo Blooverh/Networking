@@ -198,3 +198,61 @@ At the IP layer more strategies are available when taking in account *quality of
 > **Possibility of routing loops is a drawback to datagram forwarding**.
 > A set of entries in the forwarding tables that cause some packets to circulate endlessly.
 
+Routing loops typically arise because the creation of the forwarding tables is often *distributed*, and there is no global authority to detect *inconsistencies*. Even when there is such an authority, temporary routing loops can be created due to notification delays.
+
+> *Routing Loops* can also occur in networks where the underlying link topology is loop-free. *Linear routing loops* - 2 nodes looping back from one to another.
+
+**All datagram-forwarding protocols need some way of detecting and avoiding routing loops** 
+- Ethernet - avoids nonlinear routing loops by disallowing loops in the underlying network topology, and avoids linear routing loops by not having switches forward a packet back out the interface by which it arrived.
+- IP - provides for a one-byte "Time to live" (TTL) field in the IP header; it is set by the sender and decremented by 1 at each router; and a packet is discarded when TTL reaches 0. This limits the number of times a wayward packet can be forwarded to the initial TTL value, which is typically *64*.
+
+> In datagram forwarding, a *switch* is responsible only for the `next_hop` to the ultimate destination; if a switch has a complete path in mind, there is no guarantee that the `next_hop` switch or any other downstream switch will continue to forward along that path. 
+- Misunderstandings can potentially lead to routing loops. Hence datagram forwarding requires cooperation and a consistent view of the network. 
+
+![[Screenshot 2025-04-28 at 10.31.18 PM.png]]
+
+**If D thinks best path to B is D-E-C-B, and E thinks the best route is E-D-A-B, then *Linear routing* happens because both paths are not followed and D and E will sent packet to each other**
+
+## 1.7 Congestion
+
+> Switches introduce the possibility of *congestion* - Packets arriving faster than they can be sent out. This can happen by:
+
+- This can happen with just 2 interfaces:
+	- If *inbound interface* has higher bandwidth than *outbound interface*.
+- Traffic arriving on multiple inputs and destined for the same output
+
+If packets are arriving for a given *outbound interface* faster than they can be sent, a *queue* will form for that interface. If *queue* gets full, packets will be dropped. 
+Most common strategy is:
+- drop any packets that arrive when the queue is full (However some packets that are arriving when queue is full can be more important than the ones already in the queue).
+
+*Congestion* may refer either to: 
+- the point where the queue is just beginning to build up - slope of the *load vs throughput graph flattens* (AKA *CONTENTION*)
+- point where the queue is full and packets are lost - where packet losses may lead to a precipitous decline in throughput. 
+
+**Most packet losses on the internet are due to congestion, because other packet losses like packet corruption are insignificant compared to congestion.**
+
+*Congestion* - does not mean shortage of bandwidth. It can be seen as simply the *network's feedback* that the maximum transmission rate has been reached.
+
+-> In networks losses due to congestion must be generally kept to an absolute minimum, and one way to achieve this is to limit the acceptance of new connections unless sufficient resources are available.
+
+## 1.8 Packets *Again*
+
+*Packets* are the key to supporting *shared transmission lines* - they support the *multiplexing* of multiple communications channels over a single cable.
+The alternative of a separate physical line between every pair of machines grows prohibitively complex very quickly. Although *virtual circuits* between every pair of machines in a datacenter are not uncommon.
+
+*Maximum packet size* - feature that represents the maximum time a sender can send before other senders get a chance.
+*Unbounded packet sizes* would lead to prolonged network unavailability for everyone else if someone downloaded a large file in a single 1 Gigabit packet.
+Another *drawback to large packets* is that, if packet corrupted, the entire packet must be retransmitted. 
+
+> **Store-and-Forward** - when a router or switch receives a packet, and reads the entire packet before looking at the header to decide which node to forward it to. 
+> **This introduces a *forwarding delay* equal to the time needed to read the entire packet.**
+> For individual packets the forwarding delay is hard to avoid. However, some. switches implement *cut-through* switching.
+> **Cut-through switching** - forwarding a packet before it has fully arrived. but if one is sending a long train of packets then by keeping multiple packets *en route* at the same time can essentially eliminate the significance of the forwarding delay.
+
+**TOTAL PACKET DELAY FROM SENDER TO RECEIVER IS THE SUM OF THE FOLLOWING:**
+1. **Bandwidth delay** - sending 1000 Bytes/millisecond will take 50 ms. This is a per-link delay
+2. **Propagation delay** - due to speed of light. For Example, if we start sending a packet right now on a 5000KM cable across the US with a propagation speed of 200KM/ms, which is about 2/3 the speed of light in vacuum, the first bit will not arrive at the destination until 25 ms later. The bandwidth delay then determines how much after that the entire packer will take to arrive.
+3. **Store-and-forward delay** - equal to the sum of the bandwidth delays out of each router along the path.
+4. **Queueing delay** - waiting in line at busy routers. At bad moments this can exceed 1 second, though it is rare. Generally it takes less than 10ms and often is less than 1ms. Queuing delay is the only delay component amenable to reduction through engineering.
+
+## 1.9 LANs and Ethernet

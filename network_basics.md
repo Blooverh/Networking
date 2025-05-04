@@ -255,4 +255,233 @@ Another *drawback to large packets* is that, if packet corrupted, the entire pac
 3. **Store-and-forward delay** - equal to the sum of the bandwidth delays out of each router along the path.
 4. **Queueing delay** - waiting in line at busy routers. At bad moments this can exceed 1 second, though it is rare. Generally it takes less than 10ms and often is less than 1ms. Queuing delay is the only delay component amenable to reduction through engineering.
 
-## 1.9 LANs and Ethernet
+## 1.9 LAN and Ethernet
+
+*LAN* - Local-area network, consists of:
+- physical links that are ultimately, serial lines
+- common interfacing hardware connecting the hosts to the links
+- protocols to make everything work better
+
+-> With cooperation of intermediate nodes acting as switches, every LAN node is able to communicate with every other LAN node.
+
+*Collision* - when 2 stations transmit data over the ethernet at the same time, rendering the data unintelligible.
+
+Ethernet feature intended to minimize the bandwidth wasted on collisions:
+- (**The Slot Time and Collisions**) - stations before transmitting, check to be sure the line is idle, they monitor the line while transmitting to detect collisions during the transmission, and if a collision is detected, they execute a *random backoff strategy* to avoid immediate *recollision*.
+- Ethernet collisions reduce throughput, hence being seen as a remarkably inexpensive *shared access mediation protocol*
+
+
+> Unswitched Ethernets, every *packet* is received by every hosts.
+> Network card in each host determines if arriving packet is address to that host
+> Threat posed - **Password Sniffing** due to the option of NIC forwarding all arriving packets to the host.
+  
+All Ethernets are switched nowadays, ensures that packet is delivered only to the host to which it is addressed.
+
+Advantage of *Switching*;
+- Eliminates most ethernet collisions, while in principle it replaces them with a *queueing* issue leading to *congestion*
+- Also prevents host-based eavesdropping, however encryption is a better solution to this problem.
+
+**Ethernet addresses are 6 bytes long**
+-> Each NIC is assigned a unique address at the time of manufacturing. It is burned in to NICs ROM (read-only memory) and is considered the MAC (Media Access Control) address of the NIC.
+- First 3 Bytes - Unique MAC address of NIC
+- Second 3 Bytes - serial number assigned by the manufacturer
+  
+**IP Addresses are assigned administratively by the local site**.
+
+Addresses on hardware Advantage:
+- hosts automatically know their own addresses on startup, not needing manual configuration or server query.
+  
+> Network interface continually monitors all arriving packets, if packet has destination address the physical address of NIC, grabs packet and forwards it to CPU (via CPU interrupt).
+
+*Broadcast Address* - host sending to the broadcast address has its packet received by every other host on the network. If a switch receives a broadcast packet on one port, it forwards the packet out every other port. This allows host A to contact host B when A does not yet know host B's physical address. Broadcast queries have forms of:
+- ARP Protocol (`arp -a`)
+  
+**Unicast traffic** - traffic addressed to a particular host that is not broadcast.
+
+> Switched Ethernet, the *switches* must have a *forwarding table* record for each individual Ethernet address on the network, however for super large networks this is difficult to carry. Works well for networks between 10,000 to 100,000 nodes. This allows *forwarding tables* with size in the range to be straightforward to manage.
+
+-> Switches must know where all active destination address in the LAN are located to forward packets correctly.
+- Traditional Ethernet Switches use **passive learning algorithm**
+- IP Routers use *"active" protocols*
+- Newer Ethernet switches use **Software defined networking**
+
+  
+> -> Host's physical address is entered into a switch's forwarding table when a packet from that host is first received.
+> -> Switch notes the packet's arrival interface and *source* address and assumes that the same interface is to be used to deliver packets back to that sender.
+> -> If a given destination address has not been seen yet, hence not being in forwarding table
+> -> Ethernet switches still have the backup delivery option of *flooding*
+> -> **Flooding** - forwarding the packet to everyone by treating the destination address like the broadcast address, and allowing the host NIC to sort it out.
+> -> Since flooding process is not generally used for more than one packet (switch after one packet will store correct forwarding table entry), risk of excessive traffic and eavesdropping is minimal
+
+`<host, interface>` forwarding table is the same as `<host, next_hop>`, where `next_hop` node is whatever switch or host is at the immediate other end of the link connecting to the given interface.
+- In fully switched network where each link connects only 2 interfaces, `<host, interface> and <host, nex_hop>` are equivalent.
+## 1.10 IP - Internet Protocol
+
+-> Used to solve the Ethernet scaling problem, and to allow support for other types of LANs and point-to-point links.
+-> Central issue in designing IP was to support universal connectivity, in such a way as to allow scaling to enormous size (everyone can connect to everyone).
+
+To support universal connectivity IP provides:
+- global mechanism for **addressing and routing**, so that packets can actually be delivered from any host to any other host.
+
+IP Addresses:
+**IPv4** - 4 bytes (32 bits) and are a part of the *IP Header* that generally follows the Ethernet header.
+**IPv6** - 16 bytes (128 bits) also part of the IP header that generally follows the ethernet header
+
+**Ethernet header** only stays with a packet for *one hop*
+**IP header** - stays with the packet for entire journey across the internet.
+  
+**IPv4 and IPv6** addresses has a feature of being able to be divided into a *network* part (prefix) and a host part (remainder).
+
+==*IP addresses* are administratively assigned.==
+
+IPv4 Legacy mechanism for designating IP addresses
+
+```
+
+first few bits | first byte | network bits | host bits | name | application
+0 | 0-127 | 8 bits | 24 bits | class A | few very large networks
+10 | 128-191 | 16 bits | 16 bits | class B | institution-sized networks
+110 | 193-223 | 24 bits | 8 bits | class C | sized for smaller entities
+1110 | 224-239 | MULTICAST ADDRESS
+
+```
+
+If a university IP address is 147.126.0.0 - class B, first few bits are based on 147 (10010011) where `10` are 2 first bits
+IP addresses usually serves not just as an *endpoint identifier* but also a *locator*, containing embedded location information based on IP hierarchy class and not geolocation.
+Ethernet addresses are *endpoint identifiers* but *not locators*.
+
+**Class D** addresses are for *multicast* - sending an IP packet to every member of a set of recipients without actually transmitting more than once on any one link.
+  
+Nowadays the division into the *network and host bits* is *dynamic* and can be made at different positions in the address at different levels of the network.
+/27 address block (1/8 the size of a class C /24) from its ISP (200.1.130.96/27)
+Cloud Ninjas address is (50.246.50.177) - ISP host IP address and cloud ninjas gets a prefix like (/27 - example)
+At some higher level, routing might be based on the prefix (/18), which represent and *address block* assigned to the ISP.
+
+The network host division point is *not* carried within the IP header; routers negotiate this division point when they negotiate the `next_hop` forwarding information.
+
+**This is based on Classless IP delivery algorithm**
+> Network portion of an IP address is called `network number, network address, or network prefix`
+> **Forwarding decision are made using only the network prefix**.
+> **Network prefix** - denoted by setting the host bits to 0 and ending the resultant address with a slash followed by the number of network bits in the address.
+
+12.0.0.0/8 - class A, network bits are 8 bits host bits are 24
+147.126.0.0/16 - class B, network bits are 16 bits and host bits are 16 bits
+
+> All hosts with the same network address (same network bits) are said to be on the same *IP Network* and must be located together on the same LAN.
+> If 2 hosts share the same network address then they will assume they can reach each other directly via underlying LAN, and if they cannot then connectivity fails. A consequence of this rule is that outside of the site *only network bits need to be looked at to route a a packet to the site*
+
+-> All hosts/ All interfaces on the same physical LAN share the same network prefix and thus are part of the same IP network; occasionally, one LAN is divided into multiple IP networks.
+
+Each individual LAN technology has a **maximum packet size** it supports:
+- Ethernet 1500 bytes
+- Token Ring 4 kB (kilobytes)
+
+In addition to routing and addressing, IP must also support *fragmentation*.
+- *Fragmentation* - The division of large packets into multiple smaller ones.
+
+*IP is a best effort system* - There are no IP-layer acknowledgments or retransmissions. Packet is shipped off and hoped to land at destination.
+
+> Best effort models represents what is known as *connectionless networking*.
+> **Connectionless Networking** - IP-layer does not maintain information about endpoint-to-endpoint connections, and simply forwards the packets like a giant LAN.
+
+> Alternative to connectionless networking -> *connection-oriented internetworking*, in which routers do maintain state information about individual connections. **Virtual Circuits** can be used to implement a connection-oriented approach, virtual-circuit switching is the primary alternative to datagram switching.
+
+-> The responsibility for creating and maintaining connections is left for the *TCP Layer* (layer up).
+- Connectionless networking Advantages:
+- more reliable
+- routers do not hold connection state, then they cannot lose connection state
+- path taken by packets in some higher-level connection can easily be dynamically rerouted
+- Makes it hard for providers to bill by connection
+- Connection oriented networking Advantages:
+- routers are then much better positioned to accept *reservations* and to make *quality-of-service guarantees*
+- Connection oriented networking Disadvantage:
+- If using Voice-over-IP or VoIP, telephones, video conferencing, the packets in this model will be treated by the internet core just the same as if they were low priority file transfers. There is no "priority service" option.
+
+Most common form of IP packet loss are:
+- router queue overflows, representing network congestion
+- packet corruption (rare)
+
+**In connectionless networking a large number of hosts can simultaneously attempt to send traffic through one router, in which case queue overflows are hard to avoid**
+### 1.10.1 IP Forwarding
+
+> *IP routers use datagram forwarding* - "destination" values listed in forwarding tables are *network prefixes* - representing entire LANs instead of individual hosts.
+> Goal of *IP Forwarding*, then becomes delivery of packets to the correct LAN, then a separate process is used to deliver to the final host once the final LAN has been reached.
+
+-> Entire point of having a *network/host* division within IP addresses is so that *routers need to list only the network prefixes* of the destination addresses in their IP forwarding tables, which is the key to *IP scalability*, and saves large amounts of forwarding-table space, and faster lookup.
+
+-> With IP's use of network prefixes as forwarding table destinations, matching an actual packet address to a forwarding table entry is no long a mater of simple equality comparison; routers must compare appropriate prefixes.
+#### How IP Forwarding (Routing) Works
+
+> Assuming all nodes are either hosts or routers (which do packet-forwarding only).
+> - Routers are not directly visible to users, and always have at least 2 different network interfaces representing different networks that the router is connecting.
+
+If `A` is a sending host, sending a packet to host `D`, the IP header of the packet will contain both `A and D` IP address as source and destination address.
+1. `A` has to find out if `D` is on the same LAN as itself (whether `D` is local). This is done by checking the network part of `D's` address. If the same as `A`, then source host (`A`) can use direct LAN delivery to `D`. It uses *ARP (Address Resolution Protocol)* to lookup physical address of `D`, and attaches LAN header to the packet in front of the IP header, and sends the packet straight to `D` via the LAN.
+2. If `A` network `!==` to `D` network, `A` looks up a router to use. Most hosts use only one router for all non-local packet deliveries. `A` then forwards the packet to the router, using direct delivery over LAN. The IP destination address in the packet remains `D`, although the LAN destination address will be that of the router.
+When router receives packet, strips off the LAN header but leaves IP header with the IP destination address. Extracts the destination `D`, and looks up at `D's` network. Router first checks to see if any of its *network interfaces* are on the same LAN as D; router connects to at least one additional network besides the one for `A`. If it is in the same LAN as the router than router delivers directly via LAN to destination `D`. If `D` is not on the same network as the router, then the router consults its internal forwarding table.
+Which consists of networks associated with the router on the `next_hop` address. These `<net, next_hop>` tables compare with *switched-Ethernet's* `<host, next_hop>` tables; the former type will be smaller because there are many fewer nets than hosts. The *`next_hop`* addresses in the table are chosen so that the router can always reach them via direct LAN delivery via one of its interfaces, which generally are other routers.
+Router looks up `D net` in the table, finds the `next_hop` address, and uses direct LAN delivery to get the packet to that `next_hop` machine.
+The packet's IP header remains essentially the same, although router most likely attaches an entirely new LAN header.
+The packet continues being forward this way, from router to router until it arrives at a router that is connected to `D net`, it is then delivered by that final router directly to host D using LAN.
+
+Diagram from sending packet from A to D through multiple routers:
+![[Screenshot 2025-05-02 105857.png]]
+
+IP addresses for the ends of R1-R2 and R2-R3 links are not shown, they could be assigned global IP addresses or they could be "private" IP addresses. Assuming these links are point-to-point, they might not actually need IP addresses at all.
+
+> Newer protocols that support different net/host division points at different places in the network - sometimes called **hierarchical routing** - allow support for addressing schemes that correspond to addresses done like `zip/street/user`.  
+
+*Internet Backbone* - can be referred as those IP routers that specialize in large-scale routing on the commercial internet, and which generally have forwarding-table entries covering all public IP addresses. Routers that do not have a default entry.
+
+IP routers at non-backbone sites generally know all locally assigned network prefixes. If a destination does not match any locally assigned network prefix, the packet needs to be routed out into the internet at large.
+- This often means the packet is sent to the ISP that provides Internet connectivity.
+
+Local routers will contain a catchall *default* entry covering all nonlocal networks, meaning that the router needs an explicit entry only for locally assigned networks. This reduces the forwarding-table size.
+
+IP Routers do *not* have a "flooding" delivery mechanism as a fallback, so the tables must be constructed in advance. (There is a limited form of IP broadcast, but it is basically intended for reaching the local LAN only, and does not help at all with delivery in the event that the destination network is unknown).  
+
+> Most forwarding-table construction algorithms on a set of routers under common management fall into either the *distance-vector* or the *link-state* category.
+> Routers not under common management - neighboring routers belonging to different organizations - exchange information through the BGP (Border Gateway Protocol).
+> *BGP* - allows routing decisions to be based on a fusion of "technical information" (which are sites reachable at all, and through where) together with "policy" information representing legal or commercial agreements; in which outside routers are "preferred", whose traffic an ISP will carry even it is is not to one of the ISP's customers, etc...
+
+NOTE: most common residential "routers" involve *network address translation* in addition to packet forwarding
+
+### 1.10.2 Future of IPv4
+
+> Allocation of blocks of IP addresses is the responsibility of the IANA (Internet Assigned Numbers Authority). Now allocating network prefixes is the job of individual sites, and IANA limited themselves to handing out only `/8` blocks (Class A blocks) to the 5 *regional registries*:
+1. ARIN - North America
+2. RIPE - Europe, Middle East and parts of Asia
+3. APNIC - East Asia and the Pacific
+4. AfriNIC - most of Africa
+5. LACNIC - Central and South America
+
+`/8` blocks have ran out !
+
+New solution is the adoption of IPv6 addresses (128 bit addresses)
+
+## 1.11 DNS (Domain Name System)
+
+> DNS helps creating a way to convert hierarchical text names to IP addresses.
+> Virtually all Internet Software uses the same basic library calls to convert DNS to actual addresses.
+
+*DNS makes it possible to change a website's IP address while leaving the name alone.*
+- Different DNS names can resolve to the same IP address, and through some tinkering we can have the HTTP (web) server at that IP address handle the different DNS names as completely different websites.
+- DNS is hierarchical and distributed
+
+*DNS root zone* - looking up a domain like uh.edu, 4 DNS servers can be queried, for `edu, uh.edu, cs.uh.edu`. Searching a hierarchy can be cumbersome, so DNS search results are normally cached locally. If a name is not found in cache, the look up may take a couple seconds. The DNS hierarchy need have nothing to do with the IP-address hierarchy.
+## 1.12 Transport
+
+IP layer gets packets from one node to another, but it is not well suited for transport since:
+- IP routing is a "best effort" mechanism, meaning packets can and do get lost sometimes
+- Data that does arrive can arrive out of order.
+- IP only supports sending to a specific host, normally, one wants to send a given application running on that host.
+- Email and Web traffic, or 2 different web sessions, should not be mixed
+
+> The **transport layer** is the layer above the IP layer that handles these sort of issues, often by creating some sort of *connection abstraction*.
+> Most popular transport mechanism is **TCP (Transmission Control Protocol)**.
+> *TCP* extends IP with the following features:
+1. **Reliability** - TCP numbers each packet and keeps track of which are lost and retransmit them after a timeout. It holds early-arriving out of order packers for delivery at the correct time. Every arriving data packet is acknowledged by the receiver, timeout and retransmission occurs when an acknowledgement packet is not received by the sender within a given time.
+2. **Connection Orientation** - Once a TCP connection is made, an application sends data simply by writing to that connection. No further application-level addressing is needed. TCP connections are managed by the *Operating System kernel*, not by the application.
+3. **Stream Orientation** - An application using TCP can write 1 byte at a time, or 100kB at a time; TCP will buffer and/or divide up the data into appropriate sized packets.
+4. **Port Numbers** - These provide a way to specify the receiving application for the data, and also to identify the sending application.
+5. **throughput Management** - TCP attempts to maximize throughput, while at the same time not contributing unnecessarily to network *congestion*

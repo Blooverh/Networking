@@ -485,3 +485,164 @@ IP layer gets packets from one node to another, but it is not well suited for tr
 3. **Stream Orientation** - An application using TCP can write 1 byte at a time, or 100kB at a time; TCP will buffer and/or divide up the data into appropriate sized packets.
 4. **Port Numbers** - These provide a way to specify the receiving application for the data, and also to identify the sending application.
 5. **throughput Management** - TCP attempts to maximize throughput, while at the same time not contributing unnecessarily to network *congestion*
+
+> TCP endpoints are of the form `<host, port>`; these pairs are known as **Socket addresses**, or sometimes as just *sockets*. 
+> Sockets - operating systems objects that receive the data sent to the socket addresses.
+> *Servers (Server applications)* - *listen* for connections to sockets they have opened; the *client* is then any endpoint that initiates a connection to a server.
+
+- When we enter host name is web browser, a TCP connection to the server's 80 port, (server socket with socket-address 80) `<server, 80>` .
+- If we have several tabs open, each might connect to the same server socket, but the connections are distinguishable by virtue of using separate ports (having separate *socket addresses*) on the *client end (our end)*
+- A busy server may have thousands of connections to its port 80 and hundreds of connections to port 25 *(the mail port)*. 
+
+-> A TCP connection is determined by the `<host, port>` socket address at each end; traffic on different connections does not intermingle.
+- TCP uses the *sliding-windows algorithm* to keep multiple packets en route at any one time. The *windows size* represents the number of packets simultaneously in transit (TCP actually keeps track of the window size in bytes, but packets are easier to visualize).
+- If window size is 10 packets, than at any one time 10 packets are in transit (5 data packets and 5 returning acknowledgements).
+- Assuming no packets are lost, then as each acknowledgement arrives, the window "slides forward" by one packet. The data packet 10 packets ahead is sent, to maintain a total of 10 packets in transit. 
+- When the 10 packets 20-29 are circulating, once the *ack packet* for 20 is received, the total number of packets becomes 9, if window is 10, then packet 30 is sent to keep window at 10 packets, once 21 *Ack packet* is received packet 31 is sent.
+
+*Sliding Windows* - minimizes the effect of store-and-forward delays, and propagation delays, as these only count once for the entire windowful and not once per packet.
+- Also provides an automatic, if partial, brake on *congestion*.
+- *Constant-rate transmission* - if available bandwidth falls below transmission rate, always leads to overflowing queues and significant percentage of dropped packets.
+- If window size too large, a sliding windows sender may also experience dropped packets.
+- *ideal window size*:
+	- from throughput perspective - takes one round-trip to send an entire window, so that the next *ACK* will always be arriving just as the sender has finished transmitting the window.
+	- ideal size varies with network load
+	- TCP approximates the ideal size, via strategies like **TCP RENO**.
+
+*TCP Reno* - The window size is slowly raised until packet loss occurs. Which TCP takes as a sign that it has reached the limit of available network resources. At that point the window size is reduced to half its previous value, and the slow climb resumes.
+- Attempts to maximize the available bandwidth
+- greatly limits the number of packet loss events
+
+TCP is charged by the Internet Protocol (IP) with: 
+- Manages congestion on the internet 
+- Ensuring fairness of bandwidth allocations to competing connections.
+
+>**head-of-line blocking**  - Real time performance of TCP is not always consistent; if a packet is lost, the receiving TCP host will not turn over anything further to the receiving application until the lost packet has been retransmitted successfully.
+- Serious problem for sound and video applications, which can discreetly handle modest losses but which have much more difficulty with sudden large delays.
+- A few lost packets ideally should mean just a few brief voice dropouts or flicker/snow on the video screen - better than sudden pause.
+
+Alternative to TCP is **UDP (User Datagram Protocol**:
+What it does:
+- Provides port numbers to support delivery to multiple endpoints within the receiving host, in effect to a specific process on the host.
+- *UDP* sockets consists of a `<host, port>` pair.
+- *UDP* also includes a *checksum* over the data.
+
+What doesn't do: 
+- No connection setup 
+- No lost-packet detection
+- No automatic timeout/retransmission
+- Application must manage its own packetization
+
+**RTP (Real-Time Transport Protocol)** - sits above UDP and adds some additional support for voice and video applications.
+
+### 1.12.1 Transport Communications Patterns
+
+> 2 Classic traffic patterns for Internet Connection are these:
+> - Interactive or bursty communications via *ssh or telnet*, with long idle times between short bursts
+> - Bulk file transfers, such as downloading a webpage.
+
+TCP's congestion management features only applies only when a large amount of data is in transit at once. Web browsing is hybrid, over time, there is usually considerable burstiness, but individual pages now often exceed 1MB.
+- We might add *request/reply* operations, example, to query a database or to make DNS requests
+- Most DNS traffic still uses UDP. There periodic calls for a new protocol specifically addressing this pattern, though at this point the use of TCP is well established.
+- If a *sequence* of *request/reply* operations is envisioned, a single TCP connection is best, as the connection-setup overhead is minimal by comparison. 
+
+> TCP generally works well with video streaming. assuming the receiver can get, for example, a minute ahead, buffering the video that has been received but not yet viewed. That way if there is a dip in throughput due to congestion, the received has time to recover - *Buffering*
+> Another issue with video streaming is the bandwidth demand. Most streaming-video services attempt to estimate the available throughput, and then *adapt* to that throughput by changing the video resolution. 
+> Typically, video streaming operates on a *start/stop* basis: the sender pauses when the receiver's playback buffer is "full", and resumes when the playback buffer drops below a certain threshold. 
+> If video and voice audio are *interactive*, there is much less opportunity for stream buffering. If someone asks a simple question on an Internet telephone call, they generally want an answer more or less immediately; they do no not expect to wait for the answer to make it through the other party's stream buffer.
+> *UDP* is often used to avoid *head-of-line blocking*. Lower bandwidth helps; voice-grade communications traditionally need only 8 kB/s, less if compression is used. On the other hand, there may be constraints on the *variation* in delivery time. 
+> Interactive video, with its much bigger bandwidth requirements, is more difficult fortunately, users seem to tolerate the common pauses and freezes. 
+
+With the *Transport Layer*, essentially all network connections involve a *client* and a *server*. This pattern is also repeated at the *Application Layer*.
+The client contacts the server and initiates a login session, or browses some webpages, or watches a movie.
+Sometimes, however, application layer exchanges fit the *peer-to-peer* model better, in which the 2 endpoints are more or less co-equals. For example:
+- Internet Telephony - there is no benefit in designating the party who place the call as the "client"
+- Message passing in a CPU cluster is often using *RFC (Remote Procedure Call)*
+- The routing-communication protocols of *routing update algorithms*. When router `A` reports to router `B` we might call `A` the client, but overtime, as `A and B` report to one another repeatedly, the *peer-to-peer* model makes more sense.
+- So-called *Peer-to-Peer* file sharing, where individuals exchange file with other individuals (and as opposed to "cloud-based" file sharing in which the "cloud" is the server)
+
+### 1.12.2 Content-Distribution Networks (CDN)
+
+Sites with an extremely large volume of content to distribute often turn to a *specialized communication pattern* called **Content-distribution Network (CDN)**. 
+- To reduce the amount of long distance traffic, or to reduce the round-trip time, a site replicates its content at multiple datacenters (*points of presence (PoPs)*, nodes, access points or edge servers).
+- When a user makes a request, the request is routed to the nearest datacenter, and the content is delivered from there.
+
+Large webpages normally have:
+- static content (videos, JavaScript)
+- dynamic content
+
+The CDN may cache all or most of the static content at each of its edge servers, leaving dynamic content to come from a centralized server. Alternatively, the dynamic content may be replicated at each CDN edge node as well, but it introduces some real-time coordination issues.
+
+Dynamic Content:
+- Not replicated, CDN may include private high-speed links between its nodes, allowing for rapid low-congestion delivery to any node.
+- CDN nodes may simply communicate using the public internet. 
+- CDN may or may not be configured to support fast *interactive* traffic between nodes, example, *teleconferencing traffic*.
+
+Organizations can create their own CDNs, but often turn to specialized CDN providers, who often combine their CDN services with website-hosting services.
+
+To create a CDN it is needed a multiplicity of datacenters, each with its own connection to the internet:
+- Private links between datacenters are also common
+- Many CDN providers also try to build direct connections with the ISPs that server their customers.
+- Google Edge Network does this.
+- Can improve performance and reduce traffic costs.
+
+3 Techniques to find the closest edge servers:
+1. Edge servers are all given different IP addresses and DNS is configured to have users receive the IP address of the closest edge server. 
+2. Each edge server has the *same* IP address, and *anycast* routing is used to route traffic from the user to the closest edge server **(BGP and Anycast).**
+3. HTTP applications, a centralized server can look up the approximate location of the user, and them redirect the web page to the closest edge server.
+
+### 1.13 FIREWALLS
+
+One problem with having a program on our machine listening on a open TCP port is that someone may connect and then, using some flaw in the software in our end, do something malicious to the machine. Damage from personal data download, machine takeover, virus and worm distributor, etc...
+
+*Buffer Overflow* - identify a point in a server program where it fills a memory buffer with network supplied data without careful length checking; almost any call to the C library function `gets(buf)` will suffice. 
+
+*Firewall* - mechanism to block connections deemed potentially risky. Generally ordinary workstations do not ever need to accept connections from the internet; client machines instead *initiate* connections to (better-protected) servers. So blocking incoming connections works.
+- When necessary some ports can be selectively unblocked mainly for video games.
+
+Original firewalls - built into routers
+Nowadays - per-host firewalls or router-based firewalls -  we can configure your workstation not to accept inbound connections to most (or all) ports regardless of whether software on the workstation requests such a connection. Outbound connections can, in many cases, also be prevented.
+
+Typical home router implements something called *network address translation*, which in addition to conserving IPv4 addresses, also provides firewall protection.
+
+### 1.14 Useful utilities
+
+*ping* - useful to determine if another machine is successfully accessible
+
+```Text
+ping www.cloudninjas.com 
+ping 50.246.50.177 
+```
+
+*ifconfig, ipconfig, ip* - To find our own IP address we can use the following commands based on the operating system we use. 
+*ifconfig* - Linux and MAC OS
+*ipconfig* - Windows
+*ip addr list* - Linux
+
+The output generally lists all active interfaces but can be restricted to selected interfaces
+*ip* command in particularly can do many other things
+
+Windows command `netsh interface ip show config` - also provides IP addresses
+
+*nslookup, dig and host* - Used for DNS lookups. They differ in convenience and options
+
+*traceroute* - lists the route from you to a remote host (Linux Mac OS)
+*tracert* - equivalent to traceroute for windows
+
+> *Traceroute*  sends, by default 3 probes for each router. Sometimes responses do not all come back from the same router. 
+> On Linux systems the *mtr* command may be available as an alternative to traceroute; it repeats the traceroute at 1 second intervals and generates cumulative statistics
+
+
+*route & netstat* 
+`route, route pring (windows), ip route show (Linux), and netstat -r (all systems)` - display the host's local IP forwarding table. For workstations not acting as routers, this includes the route to the default router.
+The default route is sometimes listed as destination `0.0.0.0` with netmask `0.0.0.0 (equivalent to 0.0.0.0/0)`.
+
+*netstat -a* - shows the existing TCP connections and open UDP sockets
+
+*netcat* - allows the user to create TCP or UDP connections and send lines of text back and forth 
+
+*tcpdump* - command line only packet capture program
+
+*Wireshark* - packet capture and decoding program
+
+Both `tcpdump` and `wireshark` support both live packet capture and reading from `.pcap (packet capture) and .pcapng (next generation) files`.

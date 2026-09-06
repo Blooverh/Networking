@@ -614,35 +614,47 @@ ping www.cloudninjas.com
 ping 50.246.50.177 
 ```
 
-*ifconfig, ipconfig, ip* - To find our own IP address we can use the following commands based on the operating system we use. 
-*ifconfig* - Linux and MAC OS
-*ipconfig* - Windows
-*ip addr list* - Linux
+`*ifconfig, ipconfig, ip*` - To find our own IP address we can use the following commands based on the operating system we use. 
+*`ifconfig`* - Linux and MAC OS
+*`ipconfig`* - Windows
+*ip `addr` list* - Linux
 
 The output generally lists all active interfaces but can be restricted to selected interfaces
 *ip* command in particularly can do many other things
 
 Windows command `netsh interface ip show config` - also provides IP addresses
 
-*nslookup, dig and host* - Used for DNS lookups. They differ in convenience and options
+*`nslookup`, dig and host* - Used for DNS lookups. They differ in convenience and options
 
-*traceroute* - lists the route from you to a remote host (Linux Mac OS)
-*tracert* - equivalent to traceroute for windows
+*`traceroute`* - lists the route from you to a remote host (Linux, and Mac OS)
+*`tracert`* - equivalent to `traceroute` for windows
 
-> *Traceroute*  sends, by default 3 probes for each router. Sometimes responses do not all come back from the same router. 
-> On Linux systems the *mtr* command may be available as an alternative to traceroute; it repeats the traceroute at 1 second intervals and generates cumulative statistics
+> *`Traceroute`*  sends, by default 3 probes for each router. Sometimes responses do not all come back from the same router. 
+> On Linux systems the *`mtr`* command may be available as an alternative to `traceroute`; it repeats the `traceroute` at 1 second intervals and generates cumulative statistics
 
 
 *route & netstat* 
 `route, route pring (windows), ip route show (Linux), and netstat -r (all systems)` - display the host's local IP forwarding table. For workstations not acting as routers, this includes the route to the default router.
-The default route is sometimes listed as destination `0.0.0.0` with netmask `0.0.0.0 (equivalent to 0.0.0.0/0)`.
+The default route is sometimes listed as destination `0.0.0.0` with `netmask` `0.0.0.0 (equivalent to 0.0.0.0/0)`.
 
-*netstat -a* - shows the existing TCP connections and open UDP sockets
+*`netstat` -a* - shows the existing TCP connections and open UDP sockets
 
-*netcat* - allows the user to create TCP or UDP connections and send lines of text back and forth 
+*`netcat`* - allows the user to create TCP or UDP connections and send lines of text back and forth 
 
 *tcpdump* - command line only packet capture program
 
 *Wireshark* - packet capture and decoding program
 
 Both `tcpdump` and `wireshark` support both live packet capture and reading from `.pcap (packet capture) and .pcapng (next generation) files`.
+
+# Ethernet Basics
+
+Typical Ethernet Packet (still used for faster ethernets)
+```
+[ [destination address][source address][type][data][CRC] ]
+```
+
+Destination and Source address are 48-bits each, type is 16 bits, data is up to 1500 *bytes* and the final CRC checksum is 32 bits. 
+- The checksum is added by the Ethernet hardware, never by the host software.
+
+> Each network interface card has a unique physical address store in the ROM; by default any packet sent to this address will be received by the board and passed up to the host system.
